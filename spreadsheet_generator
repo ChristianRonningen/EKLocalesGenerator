@@ -5,32 +5,15 @@ require 'rubygems'
 require 'erb'
 require 'fileutils'
 require 'micro-optparse'
-require 'google_drive'
-require 'yaml'
 require 'rexml/document'
+gem 'google_drive', '>=2.0.0'
+require 'google_drive'
 require_relative 'helpers/string'
 require_relative 'helpers/read_term'
-
-DEFAULT_USER = 'your.user@gmail.com'
-DEFAULT_PASS = 'your_password'
 
 def copy_with_path(src, dst)
   FileUtils.mkdir_p(File.dirname(dst))
   FileUtils.cp(src, dst)
-end
-
-def store_credentials(credentials)
-  FileUtils.mkdir_p(Dir.home + '/.locgen/')
-  File.open(Dir.home + '/.locgen/users.yml', 'w+') { |f| f.write credentials.to_yaml }
-end
-
-def recover_credentials
-  our_filename = Dir.home + '/.locgen/users.yml'
-  if File.exist? our_filename
-    YAML::load(File.open(our_filename))
-  else
-    nil
-  end
 end
 
 def show_error(error_string)
@@ -143,9 +126,9 @@ show_error 'No parameters specified. Use the flag --help to see them all.' unles
 
 options = Parser.new do |p|
   p.banner = 'localizable-generator (c) 2013 EKGDev <elikohen@gmail.com>'
-  p.version = '0.1'
-  p.option :username, 'Your Google Drive user', :default => DEFAULT_USER
-  p.option :password, 'Your Google Drive password', :default => DEFAULT_PASS
+  p.version = '0.2'
+  p.option :client_id, 'google Client id', :default => ''
+  p.option :client_secret, 'google Client secret', :default => ''
   p.option :spreadsheet, 'Spreadsheet containing the localization info', :default => 'example-spreadsheet'
   p.option :output_ios, 'Path to the iOS localization directory', :default => '/the_path/Localizables/', :short => 'i'
   p.option :output_android, 'Path to the resource directory of an Android project', :default => '/the_path/res/', :short => 'a'
@@ -153,8 +136,8 @@ options = Parser.new do |p|
   p.option :keep_keys, 'Whether to maintain original keys or not', :default => false, :short => 'k'
 end.process!
 
-drive_user = options[:username]
-drive_pass = options[:password]
+client_id = options[:client_id]
+client_secret = options[:client_secret]
 ios_path = options[:output_ios]
 android_path = options[:output_android]
 json_path = options[:output_json]
@@ -165,40 +148,21 @@ has_ios = ios_path != '/the_path/Localizables/'
 has_android = android_path != '/the_path/res/'
 has_json = json_path != '/the_path/strings/'
 
-if drive_user == DEFAULT_USER && drive_pass == DEFAULT_PASS
-  auth = recover_credentials
-  if auth.nil?
-    print 'Your Google Drive account: '
-    drive_user = gets.chomp
-    print 'Your password:'
-    drive_pass = gets.chomp
-  else
-    drive_user = auth['login']
-    drive_pass = auth['pass']
-  end
-end
-
-show_error 'You must provide a Google Drive user' if drive_user == DEFAULT_USER || drive_user.blank?
-show_error 'You must provide a Google Drive password' if drive_pass == DEFAULT_PASS || drive_pass.blank?
-
+show_error 'You must provide a Client id and secret' if client_id.blank? || client_secret.blank?
 show_error 'You must provide a iOS, Android or JSON path at least to proceed' unless has_android || has_ios || has_json
 
 # Get the spreadsheet from Google Drive
-
 puts 'Logging in to Google Drive...'
-begin
-  session = GoogleDrive.login(drive_user, drive_pass)
+
+CREDENTIALS_PATH = Dir.home + "/.locgen/#{spreadsheet}_key.json"
+FileUtils.mkdir_p(File.dirname(CREDENTIALS_PATH))
+
+begin 
+  session = GoogleDrive.saved_session(CREDENTIALS_PATH, nil, client_id, client_secret)
 rescue
   show_error 'Couldn\'t access Google Drive. Check your credentials!'
+  exit -1
 end
-
-# Store the login info to a file in our home
-
-drive_auth = Hash.new
-drive_auth['login'] = drive_user
-drive_auth['pass'] = drive_pass
-
-store_credentials drive_auth
 
 # Recover our spreadsheets
 
@@ -239,8 +203,10 @@ default_language = nil
 
 for column in 2..worksheet.max_cols
   col_text = worksheet[first_valid_row_index, column]
-  default_language = col_text.downcase.gsub('*','') if col_text.include? '*'
-  languages.store col_text.downcase.gsub('*',''), column unless col_text.blank?
+  if col_text.downcase != '[comments]' 
+    default_language = col_text.downcase.gsub('*','') if col_text.include? '*'
+    languages.store col_text.downcase.gsub('*',''), column unless col_text.blank?
+  end
 end
 
 puts 'Languages: ' + languages.keys.join(', ').yellow

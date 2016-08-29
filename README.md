@@ -23,7 +23,8 @@ localizable-generator Usage
 Those are the generator parameters, you can show all them by typing -h
 
     localizable-generator (c) 2013 EKGDev <elikohen@gmail.com>
-    -u client                        Client json path, created at https://console.developers.google.com/
+        --client-id                  google Client id
+    -l, --client-secret              google Client secret
     -s example-spreadsheet,          Spreadsheet containing the localization info
         --spreadsheet
     -i /the_path/Localizables/,      Path to the iOS localization directory
@@ -32,6 +33,7 @@ Those are the generator parameters, you can show all them by typing -h
         --output-android
     -j /the_path/strings/,           Path to the JSON localization directory
         --output-json
+    -k, --[no-]keep-keys             Whether to maintain original keys or not
     -c, --[no-]check-unused          Whether to check unused keys on project
     -m, --[no-]check-unused-mark     If checking keys -> mark them on spreadsheet prepending [u]
     -h, --help                       Show this message
@@ -39,7 +41,7 @@ Those are the generator parameters, you can show all them by typing -h
 
 It might sound weird or difficult but I'll explain them
 
-- **Client, this is created going thru https://console.developers.google.com, follow the instructions to create a Client ID for native application, download the JSON and enter the download path here
+- **Client**, this is created going thru https://console.developers.google.com, follow the instructions to create a Client ID for native application, download the JSON and enter the download path here. After creating a project go to *APIs & auth* then *Credentials*, click on *Create new Client ID*, select *Installed Application* and then you can download the json. There you can find the client_id and secret required by the script
 - **Spreadsheet name** is part of the spreadsheet name without the [Localizables] token. For instance if the spreadsheet is called *[Localizables] Ztory* you can type just *Ztory* on this parameter.
 - **iOS, Android and JSON paths:** It must be at least one of this parameters. In case of iOS it should point to the folder where are the Localizables.strings, on android it should point to the .../res folder.
 - **check-unused** It shows a list of all keys that are not used on the project (it can provide false positives if you concatenate strings to access them).
@@ -76,31 +78,41 @@ Take this spreadsheet as an example <https://docs.google.com/spreadsheet/ccc?key
 It is important to maintain the Spreadsheet file with colors (on important rows, columns, comments) so that it becomes more readable. You can use any style modifier you want as it won't affect the generation.
 
 
+Common issues
+----------------------------------
+Some of you are having a ssl issue related with OPENSSLv3 and rvm. This is related of ruby using a the wrong system certificates. If you fall into that please reinstall your current ruby version using the following command:
+
+`rvm reinstall [yourversion] --disable-binary`
 
 Helper Script
 ----------------------------------
 This is a helper script to place on your root project folder that downloads localizable script and executes it. Just change the line that starts with *./localizable-generator* with your own values.
 
-	#!/bin/bash
-	dir="$HOME/.ekscripts/locales-generator"
-	if [ -d "$dir" -a ! -h "$dir" ]
-	then
-   		echo "$dir found, updating script"
-	       	cd "$dir"
-   		git pull > /dev/null
-	else
-   		echo "Error: $dir not found, creating it and cloning script"
-   		mkdir -p "$dir"
-   		git clone "https://github.com/elikohen/EKLocalesGenerator.git" "$dir" > /dev/null
-	fi
-
-	projectDir=`pwd`
-	cd "$dir"
-	./localizable-generator -u client.json -s Project_name -a "$projectDir/path_that_contains_res_folder/" $@
-	cd "$projectDir"
+    #!/bin/bash
+    dir="$HOME/.ekscripts/locales-generator"
+    projectDir=`pwd`
+    if [ -d "$dir" -a ! -h "$dir" ]
+    then
+      echo "$dir found, updating script"
+      cd "$dir"
+      git pull > /dev/null
+      echo "Updated. NOTE: if some gems are missing go to $dir and type 'bundle update'"
+    else
+      echo "Error: $dir not found, creating it and cloning script"
+      mkdir -p "$dir"
+      git clone "https://github.com/elikohen/EKLocalesGenerator.git" "$dir" > /dev/null
+      cd "$dir"
+      bundle install
+    fi
+      
+    cd "$dir"
+    ./localizable-generator -u "$projectDir/client_secret_localizables.json" -s Project_name -a "$projectDir/path_that_contains_res_folder/" $@
+    cd "$projectDir"
 
 
 - - -
 
-I hope this will help you in your projects. If you have any doubt just open an Issue and ask for it. 
+I hope this will help you in your projects. If you have any doubt just open an Issue and ask for it.
 
+
+Note: Thanks to [Christian Ronningen](https://github.com/ChristianRonningen) for the support!

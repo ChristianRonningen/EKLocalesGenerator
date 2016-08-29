@@ -1,8 +1,19 @@
+require_relative 'FormatSpecifiers'
+
 class Term
-  def initialize(keyword, keep_key = false)
+  def initialize(keyword, comment = nil, keep_key = false)
     @keep_key = keep_key
     @keyword = keyword
+    @comment = comment
+    @format_specifiers = nil
     @values = Hash.new
+  end
+
+  def store_value(lang, text)
+    @values.store lang, text
+    if !@format_specifiers
+      @format_specifiers = FormatSpecifiers.new(text)
+    end
   end
 
   def values
@@ -15,6 +26,30 @@ class Term
 
   def keyword
     @keyword
+  end
+
+  def comment_iphone
+    @comment || ""
+  end
+
+  def comment_android
+    @comment || ""
+  end
+
+  def has_comment?
+    @comment != nil && !@comment.empty?
+  end
+
+  def has_specifiers?
+    @format_specifiers != nil && !@format_specifiers.empty?
+  end
+
+  def specifiers_args
+    return @format_specifiers.format_args
+  end
+
+  def specifiers_vars
+    return @format_specifiers.format_vars
   end
 
   def is_comment?
@@ -31,7 +66,7 @@ class Term
 
   def keyword_iphone
     if(@keep_key)
-      return @keyword
+      return @keyword.strip_tag
     else
     '_'+@keyword.space_to_underscore.strip_tag.camel_case
     end
@@ -42,20 +77,12 @@ class Term
   end
 
   def keyword_iphone_constant_swift
-    'sLocale'+@keyword.space_to_underscore.strip_tag.camel_case
+    @keyword.space_to_underscore.strip_tag.camel_case.uncapitalize
   end
 
   def keyword_android
     if(@keep_key)
-      return @keyword
-    else
-      @keyword.space_to_underscore.strip_tag.downcase
-    end
-  end
-
-  def keyword_json
-    if(@keep_key)
-      return @keyword
+      return @keyword.strip_tag
     else
       @keyword.space_to_underscore.strip_tag.downcase
     end
