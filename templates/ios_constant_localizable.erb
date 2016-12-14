@@ -22,7 +22,7 @@ Copyright (c) 2016 EKGDev. All rights reserved.
 #define <%= term.keyword_iphone_constant %>(<%= term.specifiers_vars %>) [NSString stringWithFormat:NSLocalizedString(@"<%= term.keyword_iphone %>", comment: "<%= term.comment_iphone %>"), <%= term.specifiers_vars %>]<%
 		else
 %>
-#define <%= term.keyword_iphone_constant %> NSLocalizedString("<%= term.keyword_iphone %>", comment: "<%= term.comment_iphone %>")
+#define <%= term.keyword_iphone_constant %> NSLocalizedString(@"<%= term.keyword_iphone %>", comment: "<%= term.comment_iphone %>")
 <%
    		end
    	end
