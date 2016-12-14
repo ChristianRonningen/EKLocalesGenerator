@@ -8,23 +8,23 @@ Created by localizable-generator.
 Copyright (c) 2016 EKGDev. All rights reserved.
 */
 
-<% 
-@terms.each do |term| 
+<%
+@terms.each do |term|
 %>
 <%
     if term.restriction == 'i' || term.restriction == nil
     	if term.is_comment?
 %>
 // <%= term.values[@current_lang] %>
-<% 
+<%
 		elsif term.has_specifiers?
 %>
-#define <%= term.keyword_iphone_constant %>(<%= term.specifiers_vars %>) [NSString stringWithFormat:NSLocalizedString("<%= term.keyword_iphone %>", comment: "<%= term.comment_iphone %>"), <%= term.specifiers_vars %>]<%
-		else 
+#define <%= term.keyword_iphone_constant %>(<%= term.specifiers_vars %>) [NSString stringWithFormat:NSLocalizedString(@"<%= term.keyword_iphone %>", comment: "<%= term.comment_iphone %>"), <%= term.specifiers_vars %>]<%
+		else
 %>
 #define <%= term.keyword_iphone_constant %> NSLocalizedString("<%= term.keyword_iphone %>", comment: "<%= term.comment_iphone %>")
 <%
    		end
    	end
-end 
+end
 %>
